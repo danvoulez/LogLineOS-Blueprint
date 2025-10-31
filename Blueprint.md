@@ -200,6 +200,17 @@ async function withPg\<T\>(fn:(c:any)=\>Promise\<T\>):Promise\<T\>{
   } finally { await c.end(); }  
 }
 
+// A safe, standard SQL tagged template literal factory.  
+// This prevents SQL injection by design. Kernels will use this.  
+function createSafeSql(client: pg.Client) {  
+  return async function sql(strings: TemplateStringsArray, ...values: any\[\]) {  
+    const queryText \= strings.reduce((prev, curr, i) \=\> {  
+      return prev \+ (i \> 0 ? \`$${i}\` : "") \+ curr;  
+    }, "");  
+    return client.query(queryText, values);  
+  };  
+}
+
 async function latestManifest(){  
   const { rows } \= await withPg(c \=\> c.query(  
     \`SELECT \* FROM ledger.visible\_timeline WHERE entity\_type='manifest' ORDER BY "when" DESC LIMIT 1\`));  
@@ -258,10 +269,24 @@ async function run(){
 
   // Execute function code  
   const factory \= new Function("ctx", \`"use strict";\\n${String(fnSpan.code||"")}\\n;return (typeof default\!=='undefined'?default:globalThis.main);\`);  
+  
+  // ✅ HARDENED: Provide a secure DB access pattern to kernels.  
   const ctx \= {  
     env: { APP\_USER\_ID, APP\_TENANT\_ID, SIGNING\_KEY\_HEX },  
+    // The \`withDb\` function ensures a properly managed connection  
+    // and provides a safe \`sql\` tagged template literal function.  
+    withDb: async \<T\>(fn: (db: { sql: ReturnType\<typeof createSafeSql\> }) \=\> Promise\<T\>): Promise\<T\> \=\> {  
+      return withPg(async (client) \=\> {  
+        const sql \= createSafeSql(client);  
+        return fn({ sql });  
+      });  
+    },  
+    // Legacy \`sql\` for backward compatibility - redirects to safe implementation  
     sql: (strings:TemplateStringsArray, ...vals:any\[\]) \=\>  
-      withPg(c \=\> c.query(strings.join("$").replaceAll("$0","$"), vals)),  
+      withPg(async (client) \=\> {  
+        const sql \= createSafeSql(client);  
+        return sql(strings, ...vals);  
+      }),  
     insertSpan,  
     now,  
     crypto: { blake3, ed25519: ed, hex, toU8, randomUUID: crypto.randomUUID }  
