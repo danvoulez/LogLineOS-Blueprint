@@ -314,11 +314,12 @@ MIT License - see LICENSE file for details.
 | Component | Status | Version |
 |-----------|--------|---------|
 | **Core Ledger** | ✅ Production | 1.0.0 |
-| **Stage-0** | 🔄 In Progress | - |
-| **5 Kernels** | 🔄 In Progress | - |
-| **Workers** | 🔄 In Progress | - |
-| **Policies** | 📋 Planned | - |
-| **Crypto Proofs** | 📋 Planned | - |
+| **Stage-0** | ✅ Production | 1.0.0 |
+| **5 Kernels** | ✅ Production | 1.0.0 |
+| **Workers** | ✅ Production | 1.0.0 |
+| **Bootstrap Scripts** | ✅ Production | 1.0.0 |
+| **Testing Suite** | ✅ Production | 1.0.0 |
+| **Crypto Proofs** | ✅ Optional (Phase 2) | 1.0.0 |
 
 ---
 
